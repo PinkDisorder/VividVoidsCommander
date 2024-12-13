@@ -6,14 +6,23 @@ using Vintagestory.API.Server;
 
 namespace VividVoidsCommander {
 
-	public class CommanderConfig {
+	public class ICommanderConfig {
 		public string IsSelfSettable { get; set; }
 		public string CanRoleSwap { get; set; }
 	}
 
+	public class IMessages {
+		public string MissingArg { get; set; }
+		public string IAmArgumentName { get; set; }
+		public string IAmSuccess { get; set; }
+		public string IAmDescription { get; set; }
+		public string IAmCmdName { get; set; }
+
+	}
+
 	public class VividVoidsCommanderModSystem : ModSystem {
 
-		static CommanderConfig Config;
+		static ICommanderConfig Config;
 
 		static ICoreServerAPI sapi;
 
@@ -21,8 +30,20 @@ namespace VividVoidsCommander {
 
 		static string RoleList;
 
+		static IMessages Messages;
+
 		public override bool ShouldLoad(EnumAppSide forSide) {
 			return forSide == EnumAppSide.Server;
+		}
+
+		public override void AssetsLoaded(ICoreAPI api) {
+			Messages = new() {
+				MissingArg = Lang.Get("vividvoidscommander:missingarg"),
+				IAmArgumentName = Lang.Get("vividvoidscommander:iam_arg_name"),
+				IAmSuccess = Lang.Get("vividvoidscommander:iam_success"),
+				IAmDescription = Lang.Get("vividvoidscommander:iam_description"),
+				IAmCmdName = Lang.Get("vividvoidscommander:iam_cmd_name")
+			};
 		}
 
 		static TextCommandResult IAmCommandHandler(TextCommandCallingArgs args) {
@@ -30,22 +51,18 @@ namespace VividVoidsCommander {
 			IPlayerRole request = SelfSettableRoles.Find(r => r.Code.Equals(arg));
 
 			if ( request == null ) {
-				return TextCommandResult.Error(
-					Lang.Get("vividvoidscommander:missingarg") +
-					Lang.Get("vividvoidscommander:iam_arg_name")
-				);
+				return TextCommandResult.Error($"{Messages.MissingArg}{Messages.IAmArgumentName}");
 			}
 
 			sapi.Permissions.SetRole((IServerPlayer)args.Caller.Player, request);
 
-			return TextCommandResult.Success($"{Lang.Get("vividvoidscommander:iam_success")}{request.Code}");
+			return TextCommandResult.Success($"{Messages.IAmSuccess}{request.Code}");
 		}
-
 		public override void StartServerSide(ICoreServerAPI api) {
 
 			sapi = api;
 
-			Config = api.LoadModConfig<CommanderConfig>($"{Mod.Info.ModID}.json") ?? new() {
+			Config = api.LoadModConfig<ICommanderConfig>($"{Mod.Info.ModID}.json") ?? new() {
 				CanRoleSwap = "canroleswap",
 				IsSelfSettable = "isselfsettable"
 			};
@@ -60,11 +77,11 @@ namespace VividVoidsCommander {
 			RoleList = String.Join<string>(", ", SelfSettableRoles.ConvertAll(role => role.Code).ToArray());
 
 			// iam command
-			api.ChatCommands.Create(Lang.Get("vividvoidscommander:iam_cmd_name"))
-				.WithDescription($"{Lang.Get("vividvoidscommander:iam_description")}{RoleList}")
+			api.ChatCommands.Create(Messages.IAmCmdName)
+				.WithDescription($"{Messages.IAmDescription}{RoleList}")
 				.RequiresPlayer()
 				.RequiresPrivilege(Config.CanRoleSwap)
-				.WithArgs(api.ChatCommands.Parsers.Unparsed(Lang.Get("vividvoidscommander:iam_arg_name")))
+				.WithArgs(api.ChatCommands.Parsers.Unparsed(Messages.IAmArgumentName))
 				.HandleWith(IAmCommandHandler);
 
 		}
