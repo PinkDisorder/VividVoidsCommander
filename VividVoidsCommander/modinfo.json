@@ -1,0 +1,12 @@
+{
+  "type": "code",
+  "modid": "vividvoidscommander",
+  "name": "VividVoidsCommander",
+  "authors": ["VividVoid"],
+  "description": "A set of commands VividVoid found useful for use in her server.",
+  "version": "0.0.1",
+  "side": "Server",
+  "dependencies": {
+    "game": ""
+  }
+}
