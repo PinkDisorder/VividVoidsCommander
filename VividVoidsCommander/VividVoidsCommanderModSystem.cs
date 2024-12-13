@@ -1,6 +1,6 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.Server;
@@ -18,45 +18,46 @@ namespace VividVoidsCommander {
 		public override bool ShouldLoad(EnumAppSide forSide) {
 			return forSide == EnumAppSide.Server;
 		}
-
 		public override void StartServerSide(ICoreServerAPI api) {
 
-			try {
-				Config = api.LoadModConfig<CommanderConfig>($"{Mod.Info.ModID}.json");
-			} catch ( Exception ex ) {
+			Config = api.LoadModConfig<CommanderConfig>($"{Mod.Info.ModID}.json") ?? new() {
+				CanRoleSwap = "canroleswap",
+				IsSelfSettable = "isselfsettable"
+			};
 
-				CommanderConfig DefaultCfg = new() {
-					CanRoleSwap = "canroleswap",
-					IsSelfSettable = "isselfsettable"
-				};
-
-				api.Logger.Error(ex);
-				api.StoreModConfig($"{Mod.Info.ModID}.json", JsonConvert.SerializeObject(DefaultCfg));
-
-				Config = DefaultCfg;
-			}
+			api.StoreModConfig(Config, $"{Mod.Info.ModID}.json");
 
 
 			List<IPlayerRole> SelfSettableRoles = api.Server.Config.Roles.FindAll(role => {
 				return role.Privileges.Contains(Config.IsSelfSettable);
 			});
 
-			string Description = $"{Lang.Get("vividvoidscommander:iam_description")}{SelfSettableRoles}";
+			string RoleList = String.Join<string>(", ", SelfSettableRoles.ConvertAll(role => role.Code).ToArray());
 
-			api.ChatCommands.Create("iam")
-				.WithDescription(Description)
+			api.ChatCommands.Create(Lang.Get("vividvoidscommander:iam_cmd_name"))
+				.WithDescription($"{Lang.Get("vividvoidscommander:iam_description")}{RoleList}")
 				.RequiresPlayer()
 				.RequiresPrivilege(Config.CanRoleSwap)
+				.WithArgs(api.ChatCommands.Parsers.Unparsed(Lang.Get("vividvoidscommander:iam_arg_name")))
 				.HandleWith((args) => {
+					var first = args.RawArgs.PopWord();
+					IPlayerRole req = SelfSettableRoles.Find(r => r.Code.Equals(first));
 
-					IPlayerRole req = SelfSettableRoles.Find(r => r.Name == (string)args[1]);
+					if ( req == null ) {
+						return TextCommandResult.Error(
+							Lang.Get("vividvoidscommander:missingarg") +
+							Lang.Get("vividvoidscommander:iam_arg_name") +
+							Lang.Get("vividvoidscommander:empty_error") +
+							Lang.Get("vividvoidscommander:iam_cmd_name")
+						);
+					}
 
-					IServerPlayer player = api.Server.Players[args.Caller.Player.ClientId];
+					IServerPlayer player = api.Server.Players.ToList().Find(e => e.ClientId.Equals(args.Caller.Player.ClientId));
 
 					api.Logger.Notification(player.ToString());
 
 					api.Permissions.SetRole(player, req);
-					return null;
+					return TextCommandResult.Success();
 				});
 
 		}
