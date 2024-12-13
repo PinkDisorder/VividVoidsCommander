@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.Server;
@@ -46,18 +45,13 @@ namespace VividVoidsCommander {
 					if ( req == null ) {
 						return TextCommandResult.Error(
 							Lang.Get("vividvoidscommander:missingarg") +
-							Lang.Get("vividvoidscommander:iam_arg_name") +
-							Lang.Get("vividvoidscommander:empty_error") +
-							Lang.Get("vividvoidscommander:iam_cmd_name")
+							Lang.Get("vividvoidscommander:iam_arg_name")
 						);
 					}
 
-					IServerPlayer player = api.Server.Players.ToList().Find(e => e.ClientId.Equals(args.Caller.Player.ClientId));
+					api.Permissions.SetRole((IServerPlayer)args.Caller.Player, req);
 
-					api.Logger.Notification(player.ToString());
-
-					api.Permissions.SetRole(player, req);
-					return TextCommandResult.Success();
+					return TextCommandResult.Success($"{Lang.Get("vividvoidscommander:iam_success")}{req.Code}");
 				});
 
 		}

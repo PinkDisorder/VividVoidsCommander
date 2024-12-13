@@ -1,7 +1,7 @@
 {
+  "missingarg": "Missing Parameter: ",
   "iam_cmd_name": "iam",
   "iam_arg_name": "role",
-  "missingarg": "Missing Parameter: ",
-  "empty_error": "The parameter cannot be empty. For more info: /help ",
-  "iam_description": "Allows you to set your own role. Available roles: "
+  "iam_description": "Allows you to set your own role. Available roles: ",
+  "iam_success": "Success. Your role has been set to: "
 }
