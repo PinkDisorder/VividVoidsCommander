@@ -14,10 +14,36 @@ namespace VividVoidsCommander {
 	public class VividVoidsCommanderModSystem : ModSystem {
 
 		static CommanderConfig Config;
+
+		static ICoreServerAPI sapi;
+
+		static List<IPlayerRole> SelfSettableRoles;
+
+		static string RoleList;
+
 		public override bool ShouldLoad(EnumAppSide forSide) {
 			return forSide == EnumAppSide.Server;
 		}
+
+		static TextCommandResult IAmCommandHandler(TextCommandCallingArgs args) {
+			string arg = args.RawArgs.PopWord();
+			IPlayerRole request = SelfSettableRoles.Find(r => r.Code.Equals(arg));
+
+			if ( request == null ) {
+				return TextCommandResult.Error(
+					Lang.Get("vividvoidscommander:missingarg") +
+					Lang.Get("vividvoidscommander:iam_arg_name")
+				);
+			}
+
+			sapi.Permissions.SetRole((IServerPlayer)args.Caller.Player, request);
+
+			return TextCommandResult.Success($"{Lang.Get("vividvoidscommander:iam_success")}{request.Code}");
+		}
+
 		public override void StartServerSide(ICoreServerAPI api) {
+
+			sapi = api;
 
 			Config = api.LoadModConfig<CommanderConfig>($"{Mod.Info.ModID}.json") ?? new() {
 				CanRoleSwap = "canroleswap",
@@ -27,32 +53,19 @@ namespace VividVoidsCommander {
 			api.StoreModConfig(Config, $"{Mod.Info.ModID}.json");
 
 
-			List<IPlayerRole> SelfSettableRoles = api.Server.Config.Roles.FindAll(role => {
+			SelfSettableRoles = api.Server.Config.Roles.FindAll(role => {
 				return role.Privileges.Contains(Config.IsSelfSettable);
 			});
 
-			string RoleList = String.Join<string>(", ", SelfSettableRoles.ConvertAll(role => role.Code).ToArray());
+			RoleList = String.Join<string>(", ", SelfSettableRoles.ConvertAll(role => role.Code).ToArray());
 
+			// iam command
 			api.ChatCommands.Create(Lang.Get("vividvoidscommander:iam_cmd_name"))
 				.WithDescription($"{Lang.Get("vividvoidscommander:iam_description")}{RoleList}")
 				.RequiresPlayer()
 				.RequiresPrivilege(Config.CanRoleSwap)
 				.WithArgs(api.ChatCommands.Parsers.Unparsed(Lang.Get("vividvoidscommander:iam_arg_name")))
-				.HandleWith((args) => {
-					var first = args.RawArgs.PopWord();
-					IPlayerRole req = SelfSettableRoles.Find(r => r.Code.Equals(first));
-
-					if ( req == null ) {
-						return TextCommandResult.Error(
-							Lang.Get("vividvoidscommander:missingarg") +
-							Lang.Get("vividvoidscommander:iam_arg_name")
-						);
-					}
-
-					api.Permissions.SetRole((IServerPlayer)args.Caller.Player, req);
-
-					return TextCommandResult.Success($"{Lang.Get("vividvoidscommander:iam_success")}{req.Code}");
-				});
+				.HandleWith(IAmCommandHandler);
 
 		}
 
