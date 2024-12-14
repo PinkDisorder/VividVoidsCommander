@@ -22,6 +22,11 @@ namespace VividVoidsCommander {
 
 	public class VividVoidsCommanderModSystem : ModSystem {
 
+		static readonly ICommanderConfig DefaultConfig = new() {
+			CanRoleSwap = "canroleswap",
+			IsSelfSettable = "isselfsettable"
+		};
+
 		static ICommanderConfig Config;
 
 		static ICoreServerAPI sapi;
@@ -62,13 +67,12 @@ namespace VividVoidsCommander {
 
 			sapi = api;
 
-			Config = api.LoadModConfig<ICommanderConfig>($"{Mod.Info.ModID}.json") ?? new() {
-				CanRoleSwap = "canroleswap",
-				IsSelfSettable = "isselfsettable"
-			};
+			Config = api.LoadModConfig<ICommanderConfig>($"{Mod.Info.ModID}.json");
 
-			api.StoreModConfig(Config, $"{Mod.Info.ModID}.json");
-
+			if ( Config == null ) {
+				Config = DefaultConfig;
+				api.StoreModConfig(Config, $"{Mod.Info.ModID}.json");
+			}
 
 			SelfSettableRoles = api.Server.Config.Roles.FindAll(role => {
 				return role.Privileges.Contains(Config.IsSelfSettable);
