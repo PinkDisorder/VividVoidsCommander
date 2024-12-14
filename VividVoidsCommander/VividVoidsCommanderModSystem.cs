@@ -5,24 +5,9 @@ using Vintagestory.API.Config;
 using Vintagestory.API.Server;
 
 namespace VividVoidsCommander {
-
-	public class ICommanderConfig {
-		public string IsSelfSettable { get; set; }
-		public string CanRoleSwap { get; set; }
-	}
-
-	public class IMessages {
-		public string MissingArg { get; set; }
-		public string IAmArgumentName { get; set; }
-		public string IAmSuccess { get; set; }
-		public string IAmDescription { get; set; }
-		public string IAmCmdName { get; set; }
-
-	}
-
 	public class VividVoidsCommanderModSystem : ModSystem {
 
-		static readonly ICommanderConfig DefaultConfig = new() {
+		private static readonly ICommanderConfig DefaultConfig = new() {
 			CanRoleSwap = "canroleswap",
 			IsSelfSettable = "isselfsettable"
 		};
@@ -42,7 +27,7 @@ namespace VividVoidsCommander {
 		}
 
 		public override void AssetsLoaded(ICoreAPI api) {
-			Messages = new() {
+			Messages = new IMessages {
 				MissingArg = Lang.Get("vividvoidscommander:missingarg"),
 				IAmArgumentName = Lang.Get("vividvoidscommander:iam_arg_name"),
 				IAmSuccess = Lang.Get("vividvoidscommander:iam_success"),
@@ -51,7 +36,7 @@ namespace VividVoidsCommander {
 			};
 		}
 
-		static TextCommandResult IAmCommandHandler(TextCommandCallingArgs args) {
+		private static TextCommandResult IAmCommandHandler(TextCommandCallingArgs args) {
 			string arg = args.RawArgs.PopWord();
 			IPlayerRole request = SelfSettableRoles.Find(r => r.Code.Equals(arg));
 
@@ -63,6 +48,13 @@ namespace VividVoidsCommander {
 
 			return TextCommandResult.Success($"{Messages.IAmSuccess}{request.Code}");
 		}
+
+		public static TextCommandResult KitHandler(TextCommandCallingArgs args) {
+			string arg = args.RawArgs.PopWord();
+
+			return TextCommandResult.Success();
+		}
+
 		public override void StartServerSide(ICoreServerAPI api) {
 
 			sapi = api;
@@ -74,11 +66,9 @@ namespace VividVoidsCommander {
 				api.StoreModConfig(Config, $"{Mod.Info.ModID}.json");
 			}
 
-			SelfSettableRoles = api.Server.Config.Roles.FindAll(role => {
-				return role.Privileges.Contains(Config.IsSelfSettable);
-			});
+			SelfSettableRoles = api.Server.Config.Roles.FindAll(role => role.Privileges.Contains(Config.IsSelfSettable));
 
-			RoleList = String.Join<string>(", ", SelfSettableRoles.ConvertAll(role => role.Code).ToArray());
+			RoleList = string.Join<string>(", ", SelfSettableRoles.ConvertAll(role => role.Code).ToArray());
 
 			// iam command
 			api.ChatCommands.Create(Messages.IAmCmdName)
