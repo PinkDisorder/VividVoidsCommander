@@ -1,83 +1,175 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Linq;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.Server;
 
+// ReSharper disable InconsistentNaming
+
 namespace VividVoidsCommander {
 	public class VividVoidsCommanderModSystem : ModSystem {
 
-		private static readonly ICommanderConfig DefaultConfig = new() {
-			CanRoleSwap = "canroleswap",
-			IsSelfSettable = "isselfsettable"
+		private static ICoreServerAPI sapi;
+		
+
+		private static readonly CommanderConfig DefaultConfig = new() {
+			CanRelocate = "canrelocate",
+			Relocatable = "relocatable",
+			CanUseKits = "canusekits",
+			Kits = new List<Kit>()
 		};
 
-		static ICommanderConfig Config;
-
-		static ICoreServerAPI sapi;
-
-		static List<IPlayerRole> SelfSettableRoles;
-
-		static string RoleList;
-
-		static IMessages Messages;
+		private static CommanderConfig Config;
+		
+		
+		private static Messages Messages;
+		
+		private static List<IPlayerRole> RelocateRoles;
+		private static string[] RelocateRoleList;
 
 		public override bool ShouldLoad(EnumAppSide forSide) {
 			return forSide == EnumAppSide.Server;
 		}
+		
+		private static TextCommandResult RelocateCommandHandler(TextCommandCallingArgs args) {
+			string arg = args[0] as string;
+			string missingArgument = $"{Messages.MissingArgument}{Messages.RelocateParamName}";
+			
+			// It really shouldn't ever be missing but just in case of unforeseen edge case.
+			if ( string.IsNullOrEmpty(arg) ) {
+				return TextCommandResult.Error(missingArgument);
+			}
 
-		public override void AssetsLoaded(ICoreAPI api) {
-			Messages = new IMessages {
-				MissingArg = Lang.Get("vividvoidscommander:missingarg"),
-				IAmArgumentName = Lang.Get("vividvoidscommander:iam_arg_name"),
-				IAmSuccess = Lang.Get("vividvoidscommander:iam_success"),
-				IAmDescription = Lang.Get("vividvoidscommander:iam_description"),
-				IAmCmdName = Lang.Get("vividvoidscommander:iam_cmd_name")
+			// Ensure a valid role parameter was passed and that it has a declared DefaultSpawn.
+			IPlayerRole role = RelocateRoles.Find(role => role.Code.Equals(arg));
+			if ( role?.DefaultSpawn == null ) {
+				return TextCommandResult.Error(Messages.RelocateBadSpawn);
+			}
+
+			// Update the player's role.
+			IServerPlayer player = (IServerPlayer)args.Caller.Player;
+			sapi.Permissions.SetRole(player, role);
+
+
+			// Ensure the given spawn has a valid Y coordinate. Falls back to the given locations surface.
+			PlayerSpawnPos loc = role.DefaultSpawn;
+			loc.y ??= sapi.World.BlockAccessor.GetRainMapHeightAt(loc.x, loc.z) + 1;
+
+			// Teleport the player to their new spawn point.
+			player.Entity.TeleportTo(loc.x, (int)loc.y, loc.z);
+			
+			return TextCommandResult.Success($"{Messages.RelocateSuccess}{role.Code}");
+		}
+
+
+		private static JsonItemStack ItemStackToJsonItemStack(ItemStack stack) {
+			return new JsonItemStack {
+				Code = stack.Collectible.Code,
+				StackSize = stack.StackSize,
+				Type = stack.Class,
+				Attributes = stack.ItemAttributes
 			};
 		}
 
-		private static TextCommandResult IAmCommandHandler(TextCommandCallingArgs args) {
-			string arg = args.RawArgs.PopWord();
-			IPlayerRole request = SelfSettableRoles.Find(r => r.Code.Equals(arg));
+		private TextCommandResult KitCreationHandler(TextCommandCallingArgs args) {
 
-			if ( request == null ) {
-				return TextCommandResult.Error($"{Messages.MissingArg}{Messages.IAmArgumentName}");
+			IInventory hotbar = args.Caller.Player.InventoryManager.GetHotbarInventory();
+
+			List<JsonItemStack> validItemStacks = hotbar.ToList()
+				.ConvertAll(slot => slot.Itemstack)
+				.FindAll(itemStack => itemStack?.Collectible != null)
+				.ConvertAll(ItemStackToJsonItemStack);
+			
+			Config.Kits.Add(new Kit {
+				Name = (string)args[1],
+				Items = validItemStacks,
+				Uses = 1
+			});
+
+			sapi.StoreModConfig(Config, $"{Mod.Info.ModID}.json");
+
+			return TextCommandResult.Success($"{validItemStacks}");
+
+		}
+
+		private TextCommandResult KitDeleteHandler(TextCommandCallingArgs args) {
+			string kitName = args[0] as string;
+			Kit target = Config.Kits.Find(kit => kit.Name == kitName);
+			if ( target == null ) {
+				return TextCommandResult.Error($"{Messages.KitNotFound}{kitName}"); // TODO
 			}
-
-			sapi.Permissions.SetRole((IServerPlayer)args.Caller.Player, request);
-
-			return TextCommandResult.Success($"{Messages.IAmSuccess}{request.Code}");
+			Config.Kits.Remove(target);
+			sapi.StoreModConfig(Config, $"{Mod.Info.ModID}.json");
+			return TextCommandResult.Success(Messages.KitDeletionSuccess);
 		}
 
-		public static TextCommandResult KitHandler(TextCommandCallingArgs args) {
-			string arg = args.RawArgs.PopWord();
 
-			return TextCommandResult.Success();
+		private TextCommandResult KitUseHandler(TextCommandCallingArgs args) {
+			string kitName = args[0] as string;
+			Kit requestedKit = Config.Kits.Find(kit => kit.Name == kitName);
+			// args.Caller.Player
+			return TextCommandResult.Success("");
 		}
-
-		public override void StartServerSide(ICoreServerAPI api) {
-
-			sapi = api;
-
-			Config = api.LoadModConfig<ICommanderConfig>($"{Mod.Info.ModID}.json");
-
+		
+		private TextCommandResult KitHandler(TextCommandCallingArgs args) {
+			// Ensure a kit is specified.
+			string arg = (string)args[0];
+			return arg switch {
+				null => TextCommandResult.Error($"{Messages.MissingArgument}{Messages.RelocateParamName}"),
+				"create" => KitCreationHandler(args),
+				"delete" => KitDeleteHandler(args),
+				_ => TextCommandResult.Deferred
+			};
+		}
+		
+		public override void AssetsFinalize(ICoreAPI api) {
+			sapi = (ICoreServerAPI)api;
+			Config = sapi.LoadModConfig<CommanderConfig>($"{Mod.Info.ModID}.json");
+			// Config missing, store the default one.
 			if ( Config == null ) {
 				Config = DefaultConfig;
-				api.StoreModConfig(Config, $"{Mod.Info.ModID}.json");
+				sapi.StoreModConfig(Config, $"{Mod.Info.ModID}.json");
 			}
-
-			SelfSettableRoles = api.Server.Config.Roles.FindAll(role => role.Privileges.Contains(Config.IsSelfSettable));
-
-			RoleList = string.Join<string>(", ", SelfSettableRoles.ConvertAll(role => role.Code).ToArray());
-
+			// Command specific variables
+			RelocateRoles = sapi.Server.Config.Roles.FindAll(role => role.Privileges.Contains(Config.Relocatable));
+			RelocateRoleList = RelocateRoles.ConvertAll(role => role.Code).ToArray();
+			
+			Messages = new Messages {
+				MissingArgument = Lang.Get("vividvoidscommander:missing_argument"),
+				RelocateCmdName = Lang.Get("vividvoidscommander:relocate_cmd_name"),
+				RelocateParamName = Lang.Get("vividvoidscommander:relocate_param_name"),
+				RelocateDescription = Lang.Get("vividvoidscommander:relocate_description"),
+				RelocateSuccess = Lang.Get("vividvoidscommander:relocate_success"),
+				RelocateBadSpawn = Lang.Get("vividvoidscommander:relocate_bad_spawn"),
+				RelocateInvalidOption = Lang.Get("vividvoidscommander:relocate_invalid_option"),
+				
+				KitCmdName = Lang.Get("vividvoidscommander:kit_cmd_name"),
+				KitParamName = Lang.Get("vividvoidscommander:kit_param_name"),
+				KitDescription = Lang.Get("vividvoidscommander:kit_description"),
+				KitSuccess = Lang.Get("vividvoidscommander:kit_success"),
+				KitNotFound = Lang.Get("vividvoidscommander:kit_not_found"),
+				KitUsesMaxReached = Lang.Get("vividvoidscommander:kit_uses_max_reached"),
+				KitMalformed = Lang.Get("vividvoidscommander:kit_malformed"),
+				KitDeletionSuccess = Lang.Get("vividvoidscommander:kit_deletion_success"),
+			};
+		}
+		
+		public override void StartServerSide(ICoreServerAPI api) {
 			// iam command
-			api.ChatCommands.Create(Messages.IAmCmdName)
-				.WithDescription($"{Messages.IAmDescription}{RoleList}")
+			sapi.ChatCommands.Create(Messages.RelocateCmdName)
+				.WithDescription($"{Messages.RelocateDescription}{string.Join(", ", RelocateRoleList)}")
 				.RequiresPlayer()
-				.RequiresPrivilege(Config.CanRoleSwap)
-				.WithArgs(api.ChatCommands.Parsers.Unparsed(Messages.IAmArgumentName))
-				.HandleWith(IAmCommandHandler);
+				.RequiresPrivilege(Config.CanRelocate)
+				.WithArgs(sapi.ChatCommands.Parsers.Word(Messages.RelocateParamName))
+				.HandleWith(RelocateCommandHandler);
 
+			sapi.ChatCommands.Create(Messages.KitCmdName)
+				.WithDescription(Messages.KitDescription)
+				.RequiresPlayer()
+				.RequiresPrivilege(Config.CanUseKits)
+				.WithArgs(sapi.ChatCommands.Parsers.Word(Messages.KitParamName), sapi.ChatCommands.Parsers.Word(Messages.KitParamName))
+				.HandleWith(KitHandler);
+			sapi.Logger.Debug(Messages.RelocateCmdName);
 		}
 
 	}
