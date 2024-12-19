@@ -121,7 +121,7 @@ namespace VividVoidsCommander {
 			}
 
 			player.SetModData($"kits_used_{requestedKit.Name}", i + 1);
-			return TextCommandResult.Success("");
+			return TextCommandResult.Success(Messages.KitSuccess);
 		}
 		
 		private TextCommandResult KitHandler(TextCommandCallingArgs args) {
