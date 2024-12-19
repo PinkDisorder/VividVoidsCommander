@@ -20,10 +20,7 @@ namespace VividVoidsCommander {
 		};
 
 		private static CommanderConfig Config;
-		
-		
 		private static Messages Messages;
-		
 		private static List<IPlayerRole> RelocateRoles;
 		private static string[] RelocateRoleList;
 
@@ -96,7 +93,7 @@ namespace VividVoidsCommander {
 			string kitName = args[0] as string;
 			Kit target = Config.Kits.Find(kit => kit.Name == kitName);
 			if ( target == null ) {
-				return TextCommandResult.Error($"{Messages.KitNotFound}{kitName}"); // TODO
+				return TextCommandResult.Error($"{Messages.KitNotFound}{kitName}");
 			}
 			Config.Kits.Remove(target);
 			sapi.StoreModConfig(Config, $"{Mod.Info.ModID}.json");
@@ -104,21 +101,36 @@ namespace VividVoidsCommander {
 		}
 
 
-		private TextCommandResult KitUseHandler(TextCommandCallingArgs args) {
+		private static TextCommandResult KitUseHandler(TextCommandCallingArgs args) {
 			string kitName = args[0] as string;
 			Kit requestedKit = Config.Kits.Find(kit => kit.Name == kitName);
-			// args.Caller.Player
+			
+			if ( requestedKit == null ) {
+				return TextCommandResult.Error($"{Messages.KitNotFound}{kitName}");
+			}
+			
+			IServerPlayer player = (IServerPlayer)args.Caller.Player;
+
+			int i = player.GetModData($"kits_used_{requestedKit.Name}", 0);
+			if ( i >= requestedKit.Uses ) {
+				return TextCommandResult.Error(Messages.KitUsesMaxReached);
+			}
+			
+			foreach ( JsonItemStack jsonItemStack in requestedKit.Items ) {
+				args.Caller.Player.InventoryManager.TryGiveItemstack(jsonItemStack.ResolvedItemstack, true);
+			}
+
+			player.SetModData($"kits_used_{requestedKit.Name}", i + 1);
 			return TextCommandResult.Success("");
 		}
 		
 		private TextCommandResult KitHandler(TextCommandCallingArgs args) {
-			// Ensure a kit is specified.
 			string arg = (string)args[0];
 			return arg switch {
 				null => TextCommandResult.Error($"{Messages.MissingArgument}{Messages.RelocateParamName}"),
 				"create" => KitCreationHandler(args),
 				"delete" => KitDeleteHandler(args),
-				_ => TextCommandResult.Deferred
+				_ => KitUseHandler(args)
 			};
 		}
 		

@@ -6,12 +6,12 @@ namespace VividVoidsCommander {
 		public string Relocatable { get; init; }
 		public string CanRelocate { get; init; }
 		public string CanUseKits { get; init; }
-		public List<Kit> Kits { get; set; } = new();
+		public List<Kit> Kits { get; init; } = new();
 	}
 	public class Kit {
-		public string Name { get; set; }
-		public List<JsonItemStack> Items { get; set; } = new List<JsonItemStack>();
-		public int Uses { get; set; }
+		public string Name { get; init; }
+		public List<JsonItemStack> Items { get; init; } = new();
+		public int Uses { get; init; }
 	}
 
 
