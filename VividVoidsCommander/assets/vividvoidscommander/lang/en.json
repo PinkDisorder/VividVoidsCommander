@@ -1,7 +1,19 @@
 {
-  "missingarg": "Missing Parameter: ",
-  "iam_cmd_name": "iam",
-  "iam_arg_name": "role",
-  "iam_description": "Allows you to set your own role. Available roles: ",
-  "iam_success": "Success. Your role has been set to: "
+  "missing_argument": "Missing Parameter: ",
+  
+  "relocate_cmd_name": "relocate",
+  "relocate_param_name": "location",
+  "relocate_description": "Allows you to relocate to a new area. Available areas: ",
+  "relocate_success": "Success. Your role has been set to: ",
+  "relocate_bad_spawn": "The selected relocation is missing a spawn point, and cannot be used.",
+  "relocate_invalid_option": "Cannot relocate to the selected name. No such relocation point: ",
+  
+  "kit_cmd_name": "kit",
+  "kit_param_name": "name",
+  "kit_description": "Allows you to acquire the items in a kit.",
+  "kit_success": "Successfully used the kit: ",
+  "kit_not_found": "No such kit.",
+  "kit_uses_max_reached": "This kit has reached it's maximum number of uses.",
+  "kit_malformed": "Malformed Kit: Could not find the item as declared in the config.",
+  "kit_deletion_success": "Kit successfully deleted: "
 }
