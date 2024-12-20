@@ -9,9 +9,10 @@ using Vintagestory.API.Server;
 namespace VividVoidsCommander {
 	public class VividVoidsCommanderModSystem : ModSystem {
 
+		private const int DefaultSpawnYOffset = 1;
+		
 		private static ICoreServerAPI sapi;
 		
-
 		private static readonly CommanderConfig DefaultConfig = new() {
 			CanRelocate = "canrelocate",
 			Relocatable = "relocatable",
@@ -50,7 +51,7 @@ namespace VividVoidsCommander {
 
 			// Ensure the given spawn has a valid Y coordinate. Falls back to the given locations surface.
 			PlayerSpawnPos loc = role.DefaultSpawn;
-			loc.y ??= sapi.World.BlockAccessor.GetRainMapHeightAt(loc.x, loc.z) + 1;
+			loc.y ??= sapi.World.BlockAccessor.GetRainMapHeightAt(loc.x, loc.z) + DefaultSpawnYOffset;
 
 			// Teleport the player to their new spawn point.
 			player.Entity.TeleportTo(loc.x, (int)loc.y, loc.z);
