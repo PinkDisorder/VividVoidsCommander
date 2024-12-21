@@ -1,6 +1,7 @@
 namespace VividVoidsCommander {
 	public class Messages {
-		public string MissingArgument { get; init; }
+		public string ArgumentMissing { get; init; }
+		public string ArgumentNoSuch { get; init; }
 
 		public string RelocateCmdName { get; init; }
 		public string RelocateParamName { get; init; }
@@ -10,7 +11,8 @@ namespace VividVoidsCommander {
 		public string RelocateInvalidOption { get; init; }
 		
 		public string KitCmdName { get; init; }
-		public string KitParamName { get; init; }
+		public string KitParamNameFirst { get; init; }
+		public string KitParamNameSecond { get; init; }
 		public string KitDescription { get; init; }
 		public string KitSuccess { get; init; }
 		public string KitNotFound { get; init; }

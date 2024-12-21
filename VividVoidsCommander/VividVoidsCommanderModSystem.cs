@@ -17,6 +17,8 @@ namespace VividVoidsCommander {
 			CanRelocate = "canrelocate",
 			Relocatable = "relocatable",
 			CanUseKits = "canusekits",
+			CanMakeKits = "canmakekits",
+			CanDelKits = "candelkits",
 			Kits = new List<Kit>()
 		};
 
@@ -31,7 +33,7 @@ namespace VividVoidsCommander {
 		
 		private static TextCommandResult RelocateCommandHandler(TextCommandCallingArgs args) {
 			string arg = args[0] as string;
-			string missingArgument = $"{Messages.MissingArgument}{Messages.RelocateParamName}";
+			string missingArgument = $"{Messages.ArgumentMissing}{Messages.RelocateParamName}";
 			
 			// It really shouldn't ever be missing but just in case of unforeseen edge case.
 			if ( string.IsNullOrEmpty(arg) ) {
@@ -128,10 +130,11 @@ namespace VividVoidsCommander {
 		private TextCommandResult KitHandler(TextCommandCallingArgs args) {
 			string arg = (string)args[0];
 			return arg switch {
-				null => TextCommandResult.Error($"{Messages.MissingArgument}{Messages.RelocateParamName}"),
+				null => TextCommandResult.Error($"{Messages.ArgumentMissing}{Messages.RelocateParamName}"),
 				"create" => KitCreationHandler(args),
 				"delete" => KitDeleteHandler(args),
-				_ => KitUseHandler(args)
+				"use" => KitUseHandler(args),
+				_ => TextCommandResult.Error($"{Messages.ArgumentNoSuch}${arg}")
 			};
 		}
 		
@@ -148,7 +151,9 @@ namespace VividVoidsCommander {
 			RelocateRoleList = RelocateRoles.ConvertAll(role => role.Code).ToArray();
 			
 			Messages = new Messages {
-				MissingArgument = Lang.Get("vividvoidscommander:missing_argument"),
+				ArgumentMissing = Lang.Get("vividvoidscommander:argument_missing"),
+				ArgumentNoSuch = Lang.Get("vividvoidscommander:argument_no_such"),
+
 				RelocateCmdName = Lang.Get("vividvoidscommander:relocate_cmd_name"),
 				RelocateParamName = Lang.Get("vividvoidscommander:relocate_param_name"),
 				RelocateDescription = Lang.Get("vividvoidscommander:relocate_description"),
@@ -157,7 +162,8 @@ namespace VividVoidsCommander {
 				RelocateInvalidOption = Lang.Get("vividvoidscommander:relocate_invalid_option"),
 				
 				KitCmdName = Lang.Get("vividvoidscommander:kit_cmd_name"),
-				KitParamName = Lang.Get("vividvoidscommander:kit_param_name"),
+				KitParamNameFirst = Lang.Get("vividvoidscommander:kit_param_name_first"),
+				KitParamNameSecond = Lang.Get("vividvoidscommander:kit_param_name_second"),
 				KitDescription = Lang.Get("vividvoidscommander:kit_description"),
 				KitSuccess = Lang.Get("vividvoidscommander:kit_success"),
 				KitNotFound = Lang.Get("vividvoidscommander:kit_not_found"),
@@ -180,7 +186,7 @@ namespace VividVoidsCommander {
 				.WithDescription(Messages.KitDescription)
 				.RequiresPlayer()
 				.RequiresPrivilege(Config.CanUseKits)
-				.WithArgs(sapi.ChatCommands.Parsers.Word(Messages.KitParamName), sapi.ChatCommands.Parsers.Word(Messages.KitParamName))
+				.WithArgs(sapi.ChatCommands.Parsers.Word(Messages.KitParamNameFirst), sapi.ChatCommands.Parsers.Word(Messages.KitParamNameSecond))
 				.HandleWith(KitHandler);
 			sapi.Logger.Debug(Messages.RelocateCmdName);
 		}

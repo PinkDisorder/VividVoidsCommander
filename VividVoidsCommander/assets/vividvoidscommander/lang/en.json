@@ -1,5 +1,6 @@
 {
-  "missing_argument": "Missing Parameter: ",
+  "argument_missing": "Missing Parameter: ",
+  "argument_no_such": "No such parameter: ",
   
   "relocate_cmd_name": "relocate",
   "relocate_param_name": "location",
@@ -9,7 +10,8 @@
   "relocate_invalid_option": "Cannot relocate to the selected name. No such relocation point: ",
   
   "kit_cmd_name": "kit",
-  "kit_param_name": "name",
+  "kit_param_name_first": "option",
+  "kit_param_name_second": "name",
   "kit_description": "Allows you to acquire the items in a kit.",
   "kit_success": "Successfully used the kit: ",
   "kit_not_found": "No such kit.",
