@@ -6,6 +6,8 @@ namespace VividVoidsCommander {
 		public string Relocatable { get; init; }
 		public string CanRelocate { get; init; }
 		public string CanUseKits { get; init; }
+		public string CanMakeKits { get; init; }
+		public string CanDelKits { get; init; }
 		public List<Kit> Kits { get; init; } = new();
 	}
 	public class Kit {
