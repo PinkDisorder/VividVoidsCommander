@@ -11,7 +11,7 @@ namespace VividVoidsCommander {
 		public string CanUseKits { get; init; }
 		public string CanMakeKits { get; init; }
 		public string CanDelKits { get; init; }
-		public string Path { get; set; }
+		public string Path { get; init; }
 	}
 	public class Kit {
 		public required string Name { get; init; }
