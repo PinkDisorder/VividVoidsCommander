@@ -2,8 +2,8 @@
   "param_missing": "Missing Parameter: ",
   "argument_no_such": "No such parameter: ",
   
-  "relocate_cmd_name": "relocate",
-  "relocate_param_name": "location",
+  "relocate_command": "relocate",
+  "relocate_name": "location",
   "relocate_description": "Allows you to relocate to a new area. Available areas: ",
   "relocate_success": "Success. Your role has been set to: ",
   "relocate_bad_spawn": "The selected relocation is missing a spawn point, and cannot be used.",
