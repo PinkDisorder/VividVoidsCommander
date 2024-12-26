@@ -14,10 +14,6 @@ namespace VividVoidsCommander.Commands {
 		
 		private string _createSuccess;
 		private string _deleteSuccess;
-		
-		internal override void Init(ICoreServerAPI api) {
-			throw new System.NotImplementedException();
-		}
 
 		internal override void Init(ICoreServerAPI api, CommanderConfig config) {
 			_sapi = api;
