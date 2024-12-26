@@ -13,7 +13,7 @@ namespace VividVoidsCommander {
 		public string CanDelKits { get; init; }
 		public string Path { get; set; }
 	}
-	public record Kit {
+	public class Kit {
 		public required string Name { get; init; }
 		public required List<JsonItemStack> Items { get; init; } = new();
 		public required int Uses { get; init; }
