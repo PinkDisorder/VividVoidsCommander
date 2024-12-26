@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using Vintagestory.API.Common;
-using Vintagestory.API.Config;
 using Vintagestory.API.Server;
 
 // ReSharper disable InconsistentNaming
@@ -8,8 +7,6 @@ using Vintagestory.API.Server;
 namespace VividVoidsCommander {
 	public class VividVoidsCommanderModSystem : ModSystem {
 
-		private const int DefaultSpawnYOffset = 1;
-		
 		private static ICoreServerAPI sapi;
 		
 		private static readonly CommanderConfig DefaultConfig = new() {
@@ -22,46 +19,12 @@ namespace VividVoidsCommander {
 		};
 
 		private static CommanderConfig Config;
-		private static Messages Messages;
-		private static List<IPlayerRole> RelocateRoles;
-		private static string[] RelocateRoleList;
 
 		public override bool ShouldLoad(EnumAppSide forSide) {
 			return forSide == EnumAppSide.Server;
 		}
 		
-		private static TextCommandResult RelocateCommandHandler(TextCommandCallingArgs args) {
-			string arg = args[0] as string;
-			string missingArgument = $"{Messages.ArgumentMissing}{Messages.RelocateParamName}";
-			
-			// It really shouldn't ever be missing but just in case of unforeseen edge case.
-			if ( string.IsNullOrEmpty(arg) ) {
-				return TextCommandResult.Error(missingArgument);
-			}
-
-			// Ensure a valid role parameter was passed and that it has a declared DefaultSpawn.
-			IPlayerRole role = RelocateRoles.Find(role => role.Code.Equals(arg));
-			if ( role?.DefaultSpawn == null ) {
-				return TextCommandResult.Error(Messages.RelocateBadSpawn);
-			}
-
-			// Update the player's role.
-			IServerPlayer player = (IServerPlayer)args.Caller.Player;
-			sapi.Permissions.SetRole(player, role);
-
-
-			// Ensure the given spawn has a valid Y coordinate. Falls back to the given locations surface.
-			PlayerSpawnPos loc = role.DefaultSpawn;
-			loc.y ??= sapi.World.BlockAccessor.GetRainMapHeightAt(loc.x, loc.z) + DefaultSpawnYOffset;
-
-			// Teleport the player to their new spawn point.
-			player.Entity.TeleportTo(loc.x, (int)loc.y, loc.z);
-			
-			return TextCommandResult.Success($"{Messages.RelocateSuccess}{role.Code}");
-		}
-
 		public static TextCommandResult Tp2pCommandHandler(TextCommandCallingArgs args) {
-			
 			return TextCommandResult.Deferred;
 		}
 
@@ -69,55 +32,18 @@ namespace VividVoidsCommander {
 		public override void AssetsFinalize(ICoreAPI api) {
 			sapi = (ICoreServerAPI)api;
 			Config = sapi.LoadModConfig<CommanderConfig>($"{Mod.Info.ModID}.json");
+			if ( Config != null ) return;
 			// Config missing, store the default one.
-			if ( Config == null ) {
-				Config = DefaultConfig;
-				Config.Path = $"{Mod.Info.ModID}.json";
-				sapi.StoreModConfig(Config, Config.Path);
-			}
-			// Command specific variables
-			RelocateRoles = sapi.Server.Config.Roles.FindAll(role => role.Privileges.Contains(Config.Relocatable));
-			RelocateRoleList = RelocateRoles.ConvertAll(role => role.Code).ToArray();
-			
-			Messages = new Messages {
-				ArgumentMissing = Lang.Get("vividvoidscommander:param_missing"),
-				ArgumentNoSuch = Lang.Get("vividvoidscommander:argument_no_such"),
-
-				RelocateCmdName = Lang.Get("vividvoidscommander:relocate_cmd_name"),
-				RelocateParamName = Lang.Get("vividvoidscommander:relocate_param_name"),
-				RelocateDescription = Lang.Get("vividvoidscommander:relocate_description"),
-				RelocateSuccess = Lang.Get("vividvoidscommander:relocate_success"),
-				RelocateBadSpawn = Lang.Get("vividvoidscommander:relocate_bad_spawn"),
-				RelocateInvalidOption = Lang.Get("vividvoidscommander:relocate_invalid_option"),
-				
-				KitCommand = Lang.Get("vividvoidscommander:kit_command"),
-				KitName = Lang.Get("vividvoidscommander:kit_name"),
-				KitDescription = Lang.Get("vividvoidscommander:kit_description"),
-				KitSuccess = Lang.Get("vividvoidscommander:kit_success"),
-				KitNotFound = Lang.Get("vividvoidscommander:kit_not_found"),
-				KitUsesMaxReached = Lang.Get("vividvoidscommander:kit_uses_max_reached"),
-				KitMalformed = Lang.Get("vividvoidscommander:kit_malformed"),
-				KitCreationSuccess = Lang.Get("vividvoidscommander:kit_creation_success"),
-				KitDeletionSuccess = Lang.Get("vividvoidscommander:kit_deletion_success"),
-				KitSubcommandCreate = Lang.Get("vividvoidscommander:kit_subcommand_create"),
-				KitSubcommandDelete = Lang.Get("vividvoidscommander:kit_subcommand_delete"),
-				KitSubcommandUse = Lang.Get("vividvoidscommander:kit_subcommand_use"),
-			};
+			Config = DefaultConfig;
+			Config.Path = $"{Mod.Info.ModID}.json";
+			sapi.StoreModConfig(Config, Config.Path);
 		}
 		
 		public override void StartServerSide(ICoreServerAPI api) {
 			// iam command
 			new Commands.Kit().Init(api, Config);
+			new Commands.Relocate().Init(api, Config);
 			
-			sapi.ChatCommands.Create(Messages.RelocateCmdName)
-				.WithDescription($"{Messages.RelocateDescription}{string.Join(", ", RelocateRoleList)}")
-				.RequiresPlayer()
-				.RequiresPrivilege(Config.CanRelocate)
-				.WithArgs(sapi.ChatCommands.Parsers.Word(Messages.RelocateParamName))
-				.HandleWith(RelocateCommandHandler);
-
-			
-			sapi.Logger.Debug(Messages.RelocateCmdName);
 		}
 
 	}
