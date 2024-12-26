@@ -2,49 +2,34 @@
 using Vintagestory.API.Common;
 using Vintagestory.API.Server;
 
-// ReSharper disable InconsistentNaming
-
 namespace VividVoidsCommander {
 	public class VividVoidsCommanderModSystem : ModSystem {
 
-		private static ICoreServerAPI sapi;
-		
-		private static readonly CommanderConfig DefaultConfig = new() {
-			CanRelocate = "canrelocate",
-			Relocatable = "relocatable",
-			CanUseKits = "canusekits",
-			CanMakeKits = "canmakekits",
-			CanDelKits = "candelkits",
-			Kits = new List<Kit>(),
-		};
-
-		private static CommanderConfig Config;
+		private static CommanderConfig _config;
 
 		public override bool ShouldLoad(EnumAppSide forSide) {
 			return forSide == EnumAppSide.Server;
 		}
-		
-		public static TextCommandResult Tp2pCommandHandler(TextCommandCallingArgs args) {
-			return TextCommandResult.Deferred;
-		}
-
 
 		public override void AssetsFinalize(ICoreAPI api) {
-			sapi = (ICoreServerAPI)api;
-			Config = sapi.LoadModConfig<CommanderConfig>($"{Mod.Info.ModID}.json");
-			if ( Config != null ) return;
+			_config = api.LoadModConfig<CommanderConfig>($"{Mod.Info.ModID}.json");
+			if ( _config != null ) return;
 			// Config missing, store the default one.
-			Config = DefaultConfig;
-			Config.Path = $"{Mod.Info.ModID}.json";
-			sapi.StoreModConfig(Config, Config.Path);
-		}
-		
-		public override void StartServerSide(ICoreServerAPI api) {
-			// iam command
-			new Commands.Kit().Init(api, Config);
-			new Commands.Relocate().Init(api, Config);
-			
+			_config = new CommanderConfig {
+				CanRelocate = "canrelocate",
+				Relocatable = "relocatable",
+				CanUseKits = "canusekits",
+				CanMakeKits = "canmakekits",
+				CanDelKits = "candelkits",
+				Kits = new List<Kit>(),
+				Path = $"{Mod.Info.ModID}.json"
+			};
+			api.StoreModConfig(_config, _config.Path);
 		}
 
+		public override void StartServerSide(ICoreServerAPI api) {
+			new Commands.Kit().Init(api, _config);
+			new Commands.Relocate().Init(api, _config);
+		}
 	}
 }
