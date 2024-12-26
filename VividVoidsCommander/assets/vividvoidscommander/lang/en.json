@@ -1,5 +1,5 @@
 {
-  "argument_missing": "Missing Parameter: ",
+  "param_missing": "Missing Parameter: ",
   "argument_no_such": "No such parameter: ",
   
   "relocate_cmd_name": "relocate",
@@ -9,13 +9,20 @@
   "relocate_bad_spawn": "The selected relocation is missing a spawn point, and cannot be used.",
   "relocate_invalid_option": "Cannot relocate to the selected name. No such relocation point: ",
   
-  "kit_cmd_name": "kit",
-  "kit_param_name_first": "option",
-  "kit_param_name_second": "name",
+  "kit_command": "kit",
+  
+  "kit_subcommand_create": "create",
+  "kit_subcommand_delete": "delete",
+  "kit_subcommand_use": "use",
+  
+  "kit_name": "name",
+  
   "kit_description": "Allows you to acquire the items in a kit.",
   "kit_success": "Successfully used the kit: ",
-  "kit_not_found": "No such kit.",
+  "kit_not_found": "No such kit: ",
   "kit_uses_max_reached": "This kit has reached it's maximum number of uses.",
   "kit_malformed": "Malformed Kit: Could not find the item as declared in the config.",
+  "kit_creation_success": "Kit successfully created: ",
   "kit_deletion_success": "Kit successfully deleted: "
+  
 }

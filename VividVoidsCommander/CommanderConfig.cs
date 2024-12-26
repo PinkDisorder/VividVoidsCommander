@@ -9,6 +9,7 @@ namespace VividVoidsCommander {
 		public string CanMakeKits { get; init; }
 		public string CanDelKits { get; init; }
 		public List<Kit> Kits { get; init; } = new();
+		public string Path { get; set; }
 	}
 	public class Kit {
 		public string Name { get; init; }
