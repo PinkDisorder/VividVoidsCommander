@@ -14,6 +14,12 @@ namespace VividVoidsCommander.Commands {
 		
 		private string _createSuccess;
 		private string _deleteSuccess;
+		private string _baseCommand;
+		private string _baseDescription;
+		private string _subcommandCreate;
+		private string _subcommandDelete;
+		private string _subcommandUse;
+		private string _paramNameKit;
 
 		internal override void Init(ICoreServerAPI api, CommanderConfig config) {
 			_sapi = api;
@@ -25,36 +31,46 @@ namespace VividVoidsCommander.Commands {
 
 	 		_createSuccess = Lang.Get("vividvoidscommander:kit_creation_success");
 	 		_deleteSuccess = Lang.Get("vividvoidscommander:kit_deletion_success");
-			
-			api.ChatCommands.Create(Lang.Get("vividvoidscommander:kit_command"))
-			.WithDescription(Lang.Get("vividvoidscommander:kit_description"))
+
+		  _baseCommand = Lang.Get("vividvoidscommander:kit_command");
+		  _baseDescription = Lang.Get("vividvoidscommander:kit_description");
+
+		  _subcommandCreate = Lang.Get("vividvoidscommander:kit_subcommand_create");
+		  _subcommandDelete = Lang.Get("vividvoidscommander:kit_subcommand_delete");
+		  _subcommandUse = Lang.Get("vividvoidscommander:kit_subcommand_use");
+		  _paramNameKit = Lang.Get("vividvoidscommander:kit_name");
+
+		  WordArgParser kitNameParser = api.ChatCommands.Parsers.Word(_paramNameKit);
+		  
+			api.ChatCommands.Create(_baseCommand)
+			.WithDescription(_baseDescription)
 			.RequiresPlayer()
 			.RequiresPrivilege(Privilege.chat)
-			.BeginSubCommand(Lang.Get("vividvoidscommander:kit_subcommand_create"))
+			.BeginSubCommand(_subcommandCreate)
 				 .RequiresPlayer()
 				 .RequiresPrivilege(Privilege.root)
-				 .WithArgs(api.ChatCommands.Parsers.Word(Lang.Get("vividvoidscommander:kit_name")))
+				 .WithArgs(kitNameParser)
 				 .HandleWith(this.Create)
 			.EndSubCommand()
 
-			.BeginSubCommand(Lang.Get("vividvoidscommander:kit_subcommand_delete"))
+			.BeginSubCommand(_subcommandDelete)
 				 .RequiresPlayer()
 				 .RequiresPrivilege(Privilege.root)
-				 .WithArgs(api.ChatCommands.Parsers.Word(Lang.Get("vividvoidscommander:kit_name")))
+				 .WithArgs(kitNameParser)
 				 .HandleWith(this.Delete)
 			.EndSubCommand()
 
-			.BeginSubCommand(Lang.Get("vividvoidscommander:kit_subcommand_use"))
+			.BeginSubCommand(_subcommandUse)
 				 .RequiresPlayer()
 				 .RequiresPrivilege(Privilege.chat)
-				 .WithArgs(api.ChatCommands.Parsers.Word(Lang.Get("vividvoidscommander:kit_name")))
+				 .WithArgs(kitNameParser)
 				 .HandleWith(this.Use)
 			.EndSubCommand();
 
 		}
 
 		private TextCommandResult Create(TextCommandCallingArgs args) {
-			string param = (string)args?.Parsers?[0].GetValue();
+			string param = (string)args?.Parsers?[0]?.GetValue();
 
 			if ( param == null ) {
 				return TextCommandResult.Error($"{_paramMissing}{_paramName}");
@@ -83,7 +99,7 @@ namespace VividVoidsCommander.Commands {
 
 		private TextCommandResult Delete(TextCommandCallingArgs args) {
 
-			string param = (string)args?.Parsers?[0].GetValue();
+			string param = (string)args?.Parsers?[0]?.GetValue();
 			
 			if ( param == null ) {
 				return TextCommandResult.Error($"{_paramMissing}{_paramName}");
@@ -100,7 +116,7 @@ namespace VividVoidsCommander.Commands {
 		}
 
 		private TextCommandResult Use(TextCommandCallingArgs args) {
-			string param = (string)args?.Parsers?[0].GetValue();
+			string param = (string)args?.Parsers?[0]?.GetValue();
 
 			if ( param == null ) {
 				return TextCommandResult.Error($"{_paramMissing}{_paramName}");
@@ -118,6 +134,7 @@ namespace VividVoidsCommander.Commands {
 			if ( i >= requestedKit.Uses ) {
 				return TextCommandResult.Error(Lang.Get("vividvoidscommander:kit_uses_max_reached"));
 			}
+
 			requestedKit.Items.ForEach(item => {
 				item.Resolve(_sapi.World, "what");
 				args.Caller.Player.InventoryManager.TryGiveItemstack(item.ResolvedItemstack, true);
