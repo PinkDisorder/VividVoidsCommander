@@ -21,6 +21,7 @@ namespace VividVoidsCommander.Commands {
 		private string _subcommandDelete;
 		private string _subcommandUse;
 		private string _paramNameKit;
+		private string _kitMaxUsesExceeded;
 
 		internal override void Init(ICoreServerAPI api, CommanderConfig config) {
 			_sapi = api;
@@ -40,7 +41,9 @@ namespace VividVoidsCommander.Commands {
 		  _subcommandDelete = Lang.Get("vividvoidscommander:kit_subcommand_delete");
 		  _subcommandUse = Lang.Get("vividvoidscommander:kit_subcommand_use");
 		  _paramNameKit = Lang.Get("vividvoidscommander:kit_name");
+		  _kitMaxUsesExceeded = Lang.Get("vividvoidscommander:kit_uses_max_reached");
 
+		  
 		  WordArgParser kitNameParser = api.ChatCommands.Parsers.Word(_paramNameKit);
 		  
 			api.ChatCommands.Create(_baseCommand)
@@ -72,9 +75,10 @@ namespace VividVoidsCommander.Commands {
 
 		private TextCommandResult Create(TextCommandCallingArgs args) {
 			string param = (string)args?.Parsers?[0]?.GetValue();
+			string noParam = $"{_paramMissing}{_paramName}";
 
 			if ( param == null ) {
-				return TextCommandResult.Error($"{_paramMissing}{_paramName}");
+				return TextCommandResult.Error(noParam);
 			}
 
 			IInventory hotbar = args.Caller.Player.InventoryManager.GetHotbarInventory();
@@ -133,7 +137,7 @@ namespace VividVoidsCommander.Commands {
 
 			int i = player.GetModData($"kits_used_{requestedKit.Name}", 0);
 			if ( i >= requestedKit.Uses ) {
-				return TextCommandResult.Error(Lang.Get("vividvoidscommander:kit_uses_max_reached"));
+				return TextCommandResult.Error(_kitMaxUsesExceeded);
 			}
 
 			requestedKit.Items.ForEach(item => {
